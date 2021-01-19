@@ -1,3 +1,3 @@
 data(cars)
 
-plot(cars, col = "blue")
+plot(cars, col = "green")
