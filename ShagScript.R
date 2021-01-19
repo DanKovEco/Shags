@@ -500,6 +500,7 @@ RSData$Success <- "error?"
 RSData$Success <- ifelse(RSData$RS >= 1, "success","fail")
 
 ##Dropping shags with NAs in 'RS' as instructed
+RSData.nonbreeders <- RSData[!complete.cases(RSData[,'RS']),]
 RSData <- RSData[complete.cases(RSData[,'RS']),]
 #RSData$RS[RSData$RS == "NA"] <- "0"# in case we treat them as 0 outcome instead
 
@@ -682,7 +683,11 @@ ShagCount1819.QualifiedBirds <- length(SecondWinterQualified$Darvic) # qualified
 
 ###both winters
 BothWinterMaster.Counts <- subset(FirstWinterMaster.Counts, FirstWinterMaster.Counts$Darvic %in% SecondWinterMaster.Counts$Darvic) #all observations of birds present in both winters
-ShagCountBoth.PeterheadBirds <- length(unique(BothWinterMaster.Counts$Darvic))
+ShagCountBoth.PeterheadBirds <- length(unique(BothWinterMaster.Counts$Darvic)) # how many seen in both winters total
+ShagCount1819.PeterheadBirds <- tapply(BothWinterMaster.Counts$Darvic, BothWinterMaster.Counts$RelevantSite, FUN = function(x) length(unique(x))) # all Peterhead birds (1 = in Peterhead)
+
+BothWinterQualified.Counts <- subset(FirstWinterQualified, FirstWinterQualified$Darvic %in% SecondWinterQualified$Darvic) #all qualified birds seen in both winters
+ShagCount1819.QualifiedBirds <- length(BothWinterQualified.Counts$Darvic) # qualified birds in both winters
 
 #-#-#-#
 
@@ -696,6 +701,7 @@ FirstWinterMaster.Intervals.First <- FirstWinterMaster.Intervals[!duplicated(Fir
 FirstWinterMaster.Intervals <- FirstWinterMaster.Intervals[order(FirstWinterMaster.Intervals$Date, decreasing = TRUE),]
 FirstWinterMaster.Intervals.Last <- FirstWinterMaster.Intervals[!duplicated(FirstWinterMaster.Intervals$Darvic),]
 FirstWinterMaster.Intervals.First$Winter <- "2017-2018" 
+FirstWinterMaster.Intervals.Last$Winter <- "2017-2018" 
 
 ###first date
 mean(FirstWinterMaster.Intervals.First$Date)
@@ -716,6 +722,7 @@ SecondWinterMaster.Intervals.First <- SecondWinterMaster.Intervals[!duplicated(S
 SecondWinterMaster.Intervals <- SecondWinterMaster.Intervals[order(SecondWinterMaster.Intervals$Date, decreasing = TRUE),]
 SecondWinterMaster.Intervals.Last <- SecondWinterMaster.Intervals[!duplicated(SecondWinterMaster.Intervals$Darvic),]
 SecondWinterMaster.Intervals.First$Winter <- "2018-2019" 
+SecondWinterMaster.Intervals.Last$Winter <- "2018-2019" 
 
 ###first date
 mean(SecondWinterMaster.Intervals.First$Date)
@@ -741,6 +748,84 @@ p8 <- ggplot(TDF, aes(x = Date)) +
   facet_grid(Winter ~ .)
 
 p8
+
+##same graph but for last date, not going to use it because it's not very informative, was just curious
+TDF <- FirstWinterMaster.Intervals.Last[, c(5, 9, 26)]
+TDF$Date <- TDF$Date + 365  #this is cosmetic, just so it shows up better on histogram
+TDF <- rbind(TDF, SecondWinterMaster.Intervals.Last[, c(4, 8, 18)])
+
+p8b <- ggplot(TDF, aes(x = Date)) +
+  geom_histogram(binwidth = 1, fill="grey", color="black", alpha=0.5, position="identity") +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
+  labs(x = "Last time sighted in Peterhead", y = "Frequency") +
+  facet_grid(Winter ~ .)
+
+p8b
+
+#-#-#-#
+
+##age ranges + median
+
+#max
+max(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2018)]) # oldest IoM migrant in 2018
+max(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2018)]) # oldest BoB migrant in 2018
+max(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2019)]) # oldest IoM migrant in 2019
+max(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2019)]) # oldest BoB migrant in 2019
+
+#median
+median(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2018)]) # median age of IoM migrants in 2018
+median(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2018)]) # median age of BoB migrants in 2018
+median(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2019)]) # median age of IoM migrants in 2019
+median(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2019)]) # median age of BoB migrants in 2019
+
+median(RSData.with.age$age[which(RSData.with.age$colony == "IoM")]) # median age of IoM migrants
+median(RSData.with.age$age[which(RSData.with.age$colony == "BoB")]) # median age of BoB migrants 
+
+#mean
+mean(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2018)]) # mean age of IoM migrants in 2018
+mean(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2018)]) # mean age of BoB migrants in 2018
+mean(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2019)]) # mean age of IoM migrants in 2019
+mean(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2019)]) # mean age of BoB migrants in 2019
+
+mean(RSData.with.age$age[which(RSData.with.age$colony == "IoM")]) # mean age of IoM migrants
+mean(RSData.with.age$age[which(RSData.with.age$colony == "BoB")]) # mean age of BoB migrants 
+
+#95% CI LOW
+l95ci(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2018)]) # low 95% CI age of IoM migrants in 2018
+l95ci(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2018)]) # low 95% CI age of BoB migrants in 2018
+l95ci(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2019)]) # low 95% CI age of IoM migrants in 2019
+l95ci(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2019)]) # low 95% CI age of BoB migrants in 2019
+
+#95% CI HIGH
+h95ci(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2018)]) # high 95% CI age of IoM migrants in 2018
+h95ci(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2018)]) # high 95% CI age of BoB migrants in 2018
+h95ci(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2019)]) # high 95% CI age of IoM migrants in 2019
+h95ci(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2019)]) # high 95% CIn age of BoB migrants in 2019
+
+#median absolute deviation
+mad(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2018)]) # median absolute deviation of IoM migrants in 2018
+mad(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2018)]) # median absolute deviation of age of BoB migrants in 2018
+mad(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2019)]) # median absolute deviation of age of IoM migrants in 2019
+mad(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2019)]) # median absolute deviation of age of BoB migrants in 2019
+
+mad(RSData.with.age$age[which(RSData.with.age$colony == "IoM")]) # median absolute deviation of age of IoM migrants 
+mad(RSData.with.age$age[which(RSData.with.age$colony == "BoB")]) # median absolute deviation of age of BoB migrants 
+
+#-#-#-#
+
+##extra info from reproductive success data
+
+###all breeders
+tapply(RSData$AttemptID, RSData$colony, FUN = function(x) length(unique(x))) #number of nests providing data for the model
+tapply(RSData$CRCode, RSData$colony, FUN = function(x) length(unique(x))) #number of individuals providing data for the model
+
+###breeders of known age
+tapply(RSData.with.age$AttemptID, RSData.with.age$colony, FUN = function(x) length(unique(x))) #number of nests providing data for the model
+tapply(RSData.with.age$CRCode, RSData.with.age$colony, FUN = function(x) length(unique(x))) #number of individuals providing data for the model
+
+###breeders of known sex
+tapply(RSData.with.sex$AttemptID, RSData.with.sex$colony, FUN = function(x) length(unique(x))) #number of nests providing data for the model
+tapply(RSData.with.sex$CRCode, RSData.with.sex$colony, FUN = function(x) length(unique(x))) #number of individuals providing data for the model
 
 #-#-#-#
 
@@ -814,38 +899,6 @@ ShagsMaleIoM2019/ShagsFemaleIoM2019 # male to female ratio in 2019
 
 chisq.test(x=c(ShagsFemaleIoM2018, ShagsMaleIoM2018), p=c(0.5, 0.5)) # IoM 2018
 chisq.test(x=c(ShagsFemaleIoM2019, ShagsMaleIoM2019), p=c(0.5, 0.5)) # IoM 2019
-
-#-#-#-#
-
-##age ranges + median
-
-#max
-max(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2018)]) # oldest IoM migrant in 2018
-max(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2018)]) # oldest BoB migrant in 2018
-max(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2019)]) # oldest IoM migrant in 2019
-max(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2019)]) # oldest BoB migrant in 2019
-
-#median
-median(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2018)]) # median age of IoM migrants in 2018
-median(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2018)]) # median age of BoB migrants in 2018
-median(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2019)]) # median age of IoM migrants in 2019
-median(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2019)]) # median age of BoB migrants in 2019
-
-median(RSData.with.age$age[which(RSData.with.age$colony == "IoM")]) # median age of IoM migrants
-median(RSData.with.age$age[which(RSData.with.age$colony == "BoB")]) # median age of BoB migrants 
-
-#median absolute deviation
-mad(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2018)]) # median absolute deviation of IoM migrants in 2018
-mad(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2018)]) # median absolute deviation of age of BoB migrants in 2018
-mad(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2019)]) # median absolute deviation of age of IoM migrants in 2019
-mad(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2019)]) # median absolute deviation of age of BoB migrants in 2019
-
-mad(RSData.with.age$age[which(RSData.with.age$colony == "IoM")]) # median absolute deviation of age of IoM migrants 
-mad(RSData.with.age$age[which(RSData.with.age$colony == "BoB")]) # median absolute deviation of age of BoB migrants 
-
-## few more numbers
-length(unique(RSData$AttID)) # number of breeding events
-length(unique(RSData$CRCode)) # number of individuals considered
 
 #-#-#-#
 
