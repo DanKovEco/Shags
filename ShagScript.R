@@ -13,6 +13,7 @@ library("ggstance")
 library("broom")
 library("broom.mixed")
 library("ggpubr")
+library("MuMIn")
 
 #Global Variables
 
@@ -113,6 +114,11 @@ for(r in 1:nrow(SecondWinterMaster)) {
   ifelse(grepl(SecondWinterMaster$Location[r], ImportantSites, fixed = FALSE), SecondWinterMaster$RelevantSite[r] <- 1, SecondWinterMaster$RelevantSite[r] <- 0)
   
 }
+
+###preserving these for later count
+
+FirstWinterMasterOriginal <- FirstWinterMaster
+SecondWinterMasterOriginal <- SecondWinterMaster
 
 #-#-#-#
 
@@ -529,6 +535,8 @@ model1e <- glmer(RS ~ (1|CRCode) + (1|AttemptID), data = RSData, family = "poiss
 
 anova(model1a, model1b, model1c, model1d, model1e)
 
+model.sel(model1a, model1b, model1c, model1d, model1e)
+
 overdisp_fun(model1a)
 overdisp_fun(model1b)
 overdisp_fun(model1c)
@@ -655,39 +663,43 @@ anova(model4a)
 ##counting only relevant observations
 date1718start <- as.Date("01/09/2017",format="%d/%m/%Y")
 date1718end   <- as.Date("18/02/2018",format="%d/%m/%Y")
-FirstWinterMaster.Counts <- subset(FirstWinterMaster, FirstWinterMaster$Date %in% date1718start:date1718end)
+FirstWinterMaster.Counts <- subset(FirstWinterMasterOriginal, FirstWinterMasterOriginal$Date %in% date1718start:date1718end)
 
 date1819start <- as.Date("01/09/2018",format="%d/%m/%Y")
 date1819end   <- as.Date("18/02/2019",format="%d/%m/%Y")
-SecondWinterMaster.Counts <- subset(SecondWinterMaster, SecondWinterMaster$Date %in% date1819start:date1819end)
+SecondWinterMaster.Counts <- subset(SecondWinterMasterOriginal, SecondWinterMasterOriginal$Date %in% date1819start:date1819end)
 
 ###2017-18
-ShagCount1718.AllSightings <- nrow(FirstWinterMaster.Counts) # all observation in the relevant time frame
-ShagCount1718.PeterheadSightings <- length(which(FirstWinterMaster.Counts$RelevantSite == 1)) # peterhead observation in the relevant time frame
-ShagCount1718.AllSurveyDays <- length(unique(FirstWinterMaster.Counts$Date)) # number of total survey days
+nrow(FirstWinterMaster.Counts) # all observation in the relevant time frame
+length(which(FirstWinterMaster.Counts$RelevantSite == 1)) # peterhead observation in the relevant time frame
+length(unique(FirstWinterMaster.Counts$Date)) # number of total survey days
+
 ShagCount1718.PeterheadSurveyDays <- unique(FirstWinterMasterIn$Date) # see below
 length(which(ShagCount1718.PeterheadSurveyDays %in% date1718start:date1718end)) # number of Peterhead survey days
-ShagCount1718.AllBirds <- length(unique(FirstWinterMaster.Counts$Darvic)) # all birds
-ShagCount1718.PeterheadBirds <- tapply(FirstWinterMaster.Counts$Darvic, FirstWinterMaster.Counts$RelevantSite, FUN = function(x) length(unique(x))) # all Peterhead birds (1 = in Peterhead)
-ShagCount1718.QualifiedBirds <- length(FirstWinterQualified$Darvic) # qualified birds
+
+length(unique(FirstWinterMaster.Counts$Darvic)) # all birds
+tapply(FirstWinterMaster.Counts$Darvic, FirstWinterMaster.Counts$RelevantSite, FUN = function(x) length(unique(x))) # all Peterhead birds (1 = in Peterhead)
+length(FirstWinterQualified$Darvic) # qualified birds
 
 ###2018-19
-ShagCount1819.AllSightings <- nrow(SecondWinterMaster.Counts) # all observation in the relevant time frame
-ShagCount1819.PeterheadSightings <- length(which(SecondWinterMaster.Counts$RelevantSite == 1)) # peterhead observation in the relevant time frame
-ShagCount1819.AllSurveyDays <- length(unique(SecondWinterMaster.Counts$Date)) # number of total survey days
+nrow(SecondWinterMaster.Counts) # all observation in the relevant time frame
+length(which(SecondWinterMaster.Counts$RelevantSite == 1)) # peterhead observation in the relevant time frame
+length(unique(SecondWinterMaster.Counts$Date)) # number of total survey days
+
 ShagCount1819.PeterheadSurveyDays <- unique(SecondWinterMasterIn$Date) # see below
 length(which(ShagCount1819.PeterheadSurveyDays %in% date1819start:date1819end)) # number of Peterhead survey days
-ShagCount1819.AllBirds <- length(unique(SecondWinterMaster.Counts$Darvic)) # all birds
-ShagCount1819.PeterheadBirds <- tapply(SecondWinterMaster.Counts$Darvic, SecondWinterMaster.Counts$RelevantSite, FUN = function(x) length(unique(x))) # all Peterhead birds (1 = in Peterhead)
-ShagCount1819.QualifiedBirds <- length(SecondWinterQualified$Darvic) # qualified birds
+
+length(unique(SecondWinterMaster.Counts$Darvic)) # all birds
+tapply(SecondWinterMaster.Counts$Darvic, SecondWinterMaster.Counts$RelevantSite, FUN = function(x) length(unique(x))) # all Peterhead birds (1 = in Peterhead)
+length(SecondWinterQualified$Darvic) # qualified birds
 
 ###both winters
 BothWinterMaster.Counts <- subset(FirstWinterMaster.Counts, FirstWinterMaster.Counts$Darvic %in% SecondWinterMaster.Counts$Darvic) #all observations of birds present in both winters
-ShagCountBoth.PeterheadBirds <- length(unique(BothWinterMaster.Counts$Darvic)) # how many seen in both winters total
-ShagCount1819.PeterheadBirds <- tapply(BothWinterMaster.Counts$Darvic, BothWinterMaster.Counts$RelevantSite, FUN = function(x) length(unique(x))) # all Peterhead birds (1 = in Peterhead)
+length(unique(BothWinterMaster.Counts$Darvic)) # how many seen in both winters total
+tapply(BothWinterMaster.Counts$Darvic, BothWinterMaster.Counts$RelevantSite, FUN = function(x) length(unique(x))) # all Peterhead birds (1 = in Peterhead)
 
 BothWinterQualified.Counts <- subset(FirstWinterQualified, FirstWinterQualified$Darvic %in% SecondWinterQualified$Darvic) #all qualified birds seen in both winters
-ShagCount1819.QualifiedBirds <- length(BothWinterQualified.Counts$Darvic) # qualified birds in both winters
+length(BothWinterQualified.Counts$Darvic) # qualified birds in both winters
 
 #-#-#-#
 
@@ -736,80 +748,88 @@ median(SecondWinterMaster.Intervals.Last$Date)
 sd(SecondWinterMaster.Intervals.Last$Date)
 mad(SecondWinterMaster.Intervals.Last$Date)
 
+##Try the same but with only BoB and IoM birds
+
+FirstWinterMaster.Intervals.First <- subset(FirstWinterMaster.Intervals.First,  FirstWinterMaster.Intervals.First$Darvic %in% RSData1$CRCode)
+SecondWinterMaster.Intervals.First <- subset(SecondWinterMaster.Intervals.First,  SecondWinterMaster.Intervals.First$Darvic %in% RSData2$CRCode)
+
+FirstWinterMaster.Intervals.First <- merge(FirstWinterMaster.Intervals.First, data.frame(Darvic = RSData1$CRCode, Colony = RSData1$colony), by = "Darvic")
+SecondWinterMaster.Intervals.First <- merge(SecondWinterMaster.Intervals.First, data.frame(Darvic = RSData2$CRCode, Colony = RSData2$colony), by = "Darvic")
+
 ##graph for 1st date spotted for both winters
-TDF <- FirstWinterMaster.Intervals.First[, c(5, 9, 26)]
+TDF <- FirstWinterMaster.Intervals.First[, c(1, 9, 25, 26)]
 TDF$Date <- TDF$Date + 365  #this is cosmetic, just so it shows up better on histogram
-TDF <- rbind(TDF, SecondWinterMaster.Intervals.First[, c(4, 8, 18)])
+TDF <- rbind(TDF, SecondWinterMaster.Intervals.First[, c(1, 8, 17, 18)])
 
 p8 <- ggplot(TDF, aes(x = Date)) +
   geom_histogram(binwidth = 1, fill="grey", color="black", alpha=0.5, position="identity") +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
   labs(x = "First time sighted in Peterhead", y = "Frequency") +
-  facet_grid(Winter ~ .)
+  facet_grid(Winter ~ Colony)
 
 p8
 
 ##same graph but for last date, not going to use it because it's not very informative, was just curious
-TDF <- FirstWinterMaster.Intervals.Last[, c(5, 9, 26)]
-TDF$Date <- TDF$Date + 365  #this is cosmetic, just so it shows up better on histogram
-TDF <- rbind(TDF, SecondWinterMaster.Intervals.Last[, c(4, 8, 18)])
+#TDF <- FirstWinterMaster.Intervals.Last[, c(5, 9, 26)]
+#TDF$Date <- TDF$Date + 365  #this is cosmetic, just so it shows up better on histogram
+#TDF <- rbind(TDF, SecondWinterMaster.Intervals.Last[, c(4, 8, 18)])
 
-p8b <- ggplot(TDF, aes(x = Date)) +
-  geom_histogram(binwidth = 1, fill="grey", color="black", alpha=0.5, position="identity") +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
-  labs(x = "Last time sighted in Peterhead", y = "Frequency") +
-  facet_grid(Winter ~ .)
+#p8b <- ggplot(TDF, aes(x = Date)) +
+#  geom_histogram(binwidth = 1, fill="grey", color="black", alpha=0.5, position="identity") +
+#  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
+#  labs(x = "Last time sighted in Peterhead", y = "Frequency") +
+#  facet_grid(Winter ~ .)
 
-p8b
+#p8b
 
 #-#-#-#
 
 ##age ranges + median
 
 #max
-max(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2018)]) # oldest IoM migrant in 2018
-max(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2018)]) # oldest BoB migrant in 2018
-max(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2019)]) # oldest IoM migrant in 2019
-max(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2019)]) # oldest BoB migrant in 2019
+max(RSData.with.age$age[which(RSData.with.age$colony == "Isle of May" & RSData.with.age$Year == 2018)]) # oldest IoM migrant in 2018
+max(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan" & RSData.with.age$Year == 2018)]) # oldest BoB migrant in 2018
+max(RSData.with.age$age[which(RSData.with.age$colony == "Isle of May" & RSData.with.age$Year == 2019)]) # oldest IoM migrant in 2019
+max(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan" & RSData.with.age$Year == 2019)]) # oldest BoB migrant in 2019
 
 #median
-median(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2018)]) # median age of IoM migrants in 2018
-median(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2018)]) # median age of BoB migrants in 2018
-median(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2019)]) # median age of IoM migrants in 2019
-median(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2019)]) # median age of BoB migrants in 2019
+median(RSData.with.age$age[which(RSData.with.age$colony == "Isle of May" & RSData.with.age$Year == 2018)]) # median age of IoM migrants in 2018
+median(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan" & RSData.with.age$Year == 2018)]) # median age of BoB migrants in 2018
+median(RSData.with.age$age[which(RSData.with.age$colony == "Isle of May" & RSData.with.age$Year == 2019)]) # median age of IoM migrants in 2019
+median(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan" & RSData.with.age$Year == 2019)]) # median age of BoB migrants in 2019
 
-median(RSData.with.age$age[which(RSData.with.age$colony == "IoM")]) # median age of IoM migrants
-median(RSData.with.age$age[which(RSData.with.age$colony == "BoB")]) # median age of BoB migrants 
+median(RSData.with.age$age[which(RSData.with.age$colony == "Isle of May")]) # median age of IoM migrants
+median(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan")]) # median age of BoB migrants 
 
 #mean
-mean(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2018)]) # mean age of IoM migrants in 2018
-mean(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2018)]) # mean age of BoB migrants in 2018
-mean(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2019)]) # mean age of IoM migrants in 2019
-mean(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2019)]) # mean age of BoB migrants in 2019
+mean(RSData.with.age$age[which(RSData.with.age$colony == "Isle of May" & RSData.with.age$Year == 2018)]) # mean age of IoM migrants in 2018
+mean(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan" & RSData.with.age$Year == 2018)]) # mean age of BoB migrants in 2018
+mean(RSData.with.age$age[which(RSData.with.age$colony == "Isle of May" & RSData.with.age$Year == 2019)]) # mean age of IoM migrants in 2019
+mean(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan" & RSData.with.age$Year == 2019)]) # mean age of BoB migrants in 2019
 
-mean(RSData.with.age$age[which(RSData.with.age$colony == "IoM")]) # mean age of IoM migrants
-mean(RSData.with.age$age[which(RSData.with.age$colony == "BoB")]) # mean age of BoB migrants 
+mean(RSData.with.age$age[which(RSData.with.age$colony == "Isle of May")]) # mean age of IoM migrants
+mean(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan")]) # mean age of BoB migrants 
 
 #95% CI LOW
-l95ci(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2018)]) # low 95% CI age of IoM migrants in 2018
-l95ci(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2018)]) # low 95% CI age of BoB migrants in 2018
-l95ci(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2019)]) # low 95% CI age of IoM migrants in 2019
-l95ci(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2019)]) # low 95% CI age of BoB migrants in 2019
+l95ci(RSData.with.age$age[which(RSData.with.age$colony == "Isle of May" & RSData.with.age$Year == 2018)]) # low 95% CI age of IoM migrants in 2018
+l95ci(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan" & RSData.with.age$Year == 2018)]) # low 95% CI age of BoB migrants in 2018
+l95ci(RSData.with.age$age[which(RSData.with.age$colony == "Isle of May" & RSData.with.age$Year == 2019)]) # low 95% CI age of IoM migrants in 2019
+l95ci(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan" & RSData.with.age$Year == 2019)]) # low 95% CI age of BoB migrants in 2019
 
 #95% CI HIGH
-h95ci(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2018)]) # high 95% CI age of IoM migrants in 2018
-h95ci(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2018)]) # high 95% CI age of BoB migrants in 2018
-h95ci(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2019)]) # high 95% CI age of IoM migrants in 2019
-h95ci(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2019)]) # high 95% CIn age of BoB migrants in 2019
+h95ci(RSData.with.age$age[which(RSData.with.age$colony == "Isle of May" & RSData.with.age$Year == 2018)]) # high 95% CI age of IoM migrants in 2018
+h95ci(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan" & RSData.with.age$Year == 2018)]) # high 95% CI age of BoB migrants in 2018
+h95ci(RSData.with.age$age[which(RSData.with.age$colony == "Isle of May" & RSData.with.age$Year == 2019)]) # high 95% CI age of IoM migrants in 2019
+h95ci(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan" & RSData.with.age$Year == 2019)]) # high 95% CIn age of BoB migrants in 2019
 
 #median absolute deviation
-mad(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2018)]) # median absolute deviation of IoM migrants in 2018
-mad(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2018)]) # median absolute deviation of age of BoB migrants in 2018
-mad(RSData.with.age$age[which(RSData.with.age$colony == "IoM" & RSData.with.age$Year == 2019)]) # median absolute deviation of age of IoM migrants in 2019
-mad(RSData.with.age$age[which(RSData.with.age$colony == "BoB" & RSData.with.age$Year == 2019)]) # median absolute deviation of age of BoB migrants in 2019
+mad(RSData.with.age$age[which(RSData.with.age$colony == "Isle of May" & RSData.with.age$Year == 2018)]) # median absolute deviation of IoM migrants in 2018
+mad(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan" & RSData.with.age$Year == 2018)]) # median absolute deviation of age of BoB migrants in 2018
+mad(RSData.with.age$age[which(RSData.with.age$colony == "Isle of May" & RSData.with.age$Year == 2019)]) # median absolute deviation of age of IoM migrants in 2019
+mad(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan" & RSData.with.age$Year == 2019)]) # median absolute deviation of age of BoB migrants in 2019
 
-mad(RSData.with.age$age[which(RSData.with.age$colony == "IoM")]) # median absolute deviation of age of IoM migrants 
-mad(RSData.with.age$age[which(RSData.with.age$colony == "BoB")]) # median absolute deviation of age of BoB migrants 
+mad(RSData.with.age$age[which(RSData.with.age$colony == "Isle of May")]) # median absolute deviation of age of IoM migrants 
+mad(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan")]) # median absolute deviation of age of BoB migrants 
 
 #-#-#-#
 
@@ -831,6 +851,15 @@ tapply(RSData.with.sex$CRCode, RSData.with.sex$colony, FUN = function(x) length(
 
 ##How many times seen in Peterhead histogram
 
+##Try the same but with only BoB and IoM birds
+nrow(FirstWinterMaster.Intervals)
+FirstWinterMaster.Intervals <- subset(FirstWinterMaster.Intervals,  FirstWinterMaster.Intervals$Darvic %in% RSData1$CRCode)
+SecondWinterMaster.Intervals <- subset(SecondWinterMaster.Intervals,  SecondWinterMaster.Intervals$Darvic %in% RSData2$CRCode)
+
+FirstWinterMaster.Intervals <- merge(FirstWinterMaster.Intervals, data.frame(Darvic = RSData1$CRCode, Colony = RSData1$colony), by = "Darvic")
+SecondWinterMaster.Intervals <- merge(SecondWinterMaster.Intervals, data.frame(Darvic = RSData2$CRCode, Colony = RSData2$colony), by = "Darvic")
+nrow(FirstWinterMaster.Intervals)
+
 ###1st winter 
 nrow(FirstWinterMaster.Intervals)
 intervalDF1 <- as.data.frame(table(FirstWinterMaster.Intervals$Darvic))
@@ -847,7 +876,7 @@ intervalDF <- rbind(intervalDF1, intervalDF2)
 p2 <- ggplot(intervalDF, aes(x = Freq)) +
   geom_histogram(binwidth = 1, fill="grey", color="black", alpha=0.5, position="identity") +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
-  labs(x = "Number of times recorded seen", y = "Frequency") +
+  labs(x = "Number of times sighted", y = "Frequency") +
   facet_grid(Year ~ .)
 
 p2
@@ -872,29 +901,31 @@ p6
 ##Sex ratios, counts, and chi^2 testing
 
 ###Bullers
-ShagsFemaleBoB2018  <- length(which(RSData$sex == "F" & RSData$Year == "2018" & RSData$colony == "BoB"))  # number of females in 2018
-ShagsMaleBoB2018    <- length(which(RSData$sex == "M" & RSData$Year == "2018" & RSData$colony == "BoB"))  # number of males in 2018
-ShagsUnknownBoB2018 <- length(which(RSData$sex == "NA" & RSData$Year == "2018" & RSData$colony == "BoB")) # number of unknown sexes in 2018
+ShagsFemaleBoB2018  <- length(which(RSData$sex == "F" & RSData$Year == "2018" & RSData$colony == "Bullers of Buchan"))  # number of females in 2018
+ShagsMaleBoB2018    <- length(which(RSData$sex == "M" & RSData$Year == "2018" & RSData$colony == "Bullers of Buchan"))  # number of males in 2018
+ShagsUnknownBoB2018 <- length(which(RSData$sex == "NA" & RSData$Year == "2018" & RSData$colony == "Bullers of Buchan")) # number of unknown sexes in 2018
 ShagsMaleBoB2018/ShagsFemaleBoB2018 # male to female ratio in 2018
 
-ShagsFemaleBoB2019  <- length(which(RSData$sex == "F" & RSData$Year == "2019" & RSData$colony == "BoB"))  # number of females in 2019
-ShagsMaleBoB2019    <- length(which(RSData$sex == "M" & RSData$Year == "2019" & RSData$colony == "BoB"))  # number of males in 2019
-ShagsUnknownBoB2019 <- length(which(RSData$sex == "NA" & RSData$Year == "2019" & RSData$colony == "BoB")) # number of unknown sexes in 2019
+ShagsFemaleBoB2019  <- length(which(RSData$sex == "F" & RSData$Year == "2019" & RSData$colony == "Bullers of Buchan"))  # number of females in 2019
+ShagsMaleBoB2019    <- length(which(RSData$sex == "M" & RSData$Year == "2019" & RSData$colony == "Bullers of Buchan"))  # number of males in 2019
+ShagsUnknownBoB2019 <- length(which(RSData$sex == "NA" & RSData$Year == "2019" & RSData$colony == "Bullers of Buchan")) # number of unknown sexes in 2019
 ShagsMaleBoB2019/ShagsFemaleBoB2019 # male to female ratio in 2019
 
 chisq.test(x=c(ShagsFemaleBoB2018, ShagsMaleBoB2018), p=c(0.5, 0.5)) # BoB 2018
 chisq.test(x=c(ShagsFemaleBoB2019, ShagsMaleBoB2019), p=c(0.5, 0.5)) # BoB 2019
 
 ###IoM
-ShagsFemaleIoM2018  <- length(which(RSData$sex == "F" & RSData$Year == "2018" & RSData$colony == "IoM"))  # number of females in 2018
-ShagsMaleIoM2018    <- length(which(RSData$sex == "M" & RSData$Year == "2018" & RSData$colony == "IoM"))  # number of males in 2018
-ShagsUnknownIoM2018 <- length(which(RSData$sex == "NA" & RSData$Year == "2018" & RSData$colony == "IoM")) # number of unknown sexes in 2018
+ShagsFemaleIoM2018  <- length(which(RSData$sex == "F" & RSData$Year == "2018" & RSData$colony == "Isle of May"))  # number of females in 2018
+ShagsMaleIoM2018    <- length(which(RSData$sex == "M" & RSData$Year == "2018" & RSData$colony == "Isle of May"))  # number of males in 2018
+ShagsUnknownIoM2018 <- length(which(RSData$sex == "NA" & RSData$Year == "2018" & RSData$colony == "Isle of May")) # number of unknown sexes in 2018
 ShagsMaleIoM2018/ShagsFemaleIoM2018 # male to female ratio in 2018
+ShagsFemaleIoM2018/ShagsMaleIoM2018 # female to male ratio in 2018
 
-ShagsFemaleIoM2019  <- length(which(RSData$sex == "F" & RSData$Year == "2019" & RSData$colony == "IoM"))  # number of females in 2019
-ShagsMaleIoM2019    <- length(which(RSData$sex == "M" & RSData$Year == "2019" & RSData$colony == "IoM"))  # number of males in 2019
-ShagsUnknownIoM2019 <- length(which(RSData$sex == "NA" & RSData$Year == "2019" & RSData$colony == "IoM")) # number of unknown sexes in 2019
+ShagsFemaleIoM2019  <- length(which(RSData$sex == "F" & RSData$Year == "2019" & RSData$colony == "Isle of May"))  # number of females in 2019
+ShagsMaleIoM2019    <- length(which(RSData$sex == "M" & RSData$Year == "2019" & RSData$colony == "Isle of May"))  # number of males in 2019
+ShagsUnknownIoM2019 <- length(which(RSData$sex == "NA" & RSData$Year == "2019" & RSData$colony == "Isle of May")) # number of unknown sexes in 2019
 ShagsMaleIoM2019/ShagsFemaleIoM2019 # male to female ratio in 2019
+ShagsFemaleIoM2019/ShagsMaleIoM2019 # female to mamale ratio in 2019
 
 
 chisq.test(x=c(ShagsFemaleIoM2018, ShagsMaleIoM2018), p=c(0.5, 0.5)) # IoM 2018
@@ -904,7 +935,7 @@ chisq.test(x=c(ShagsFemaleIoM2019, ShagsMaleIoM2019), p=c(0.5, 0.5)) # IoM 2019
 
 ##Histogram of age distribution in the two years
 p1 <- ggplot(RSData.with.age, aes(x = age)) +
-  aes(y = stat(count)/sum(stat(count))) +
+  #aes(y = stat(count)/sum(stat(count))) +
   geom_histogram(binwidth = 1, fill="grey", color="black", alpha=0.5, position="identity") +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
   labs(x = "Age", y = "Frequency") +
@@ -918,7 +949,7 @@ p1
 
 ### BoB
 
-TDF <- subset(RSData, colony == "BoB")
+TDF <- subset(RSData, colony == "Bullers of Buchan")
 
 p3.1 <- ggplot(TDF, aes(x = age)) +
   geom_histogram(binwidth = 1, fill="grey", color="black", alpha=0.5, position="identity") +
@@ -933,7 +964,7 @@ p3.1
 
 ### IoM
 
-TDF <- subset(RSData, colony == "IoM")
+TDF <- subset(RSData, colony == "Isle of May")
 
 p3.2 <- ggplot(TDF, aes(x = age)) +
   geom_histogram(binwidth = 1, fill="grey", color="black", alpha=0.5, position="identity") +
@@ -947,8 +978,9 @@ p3.2 <- ggplot(TDF, aes(x = age)) +
 p3.2
 
 ### years and colonies combined
-
-p3 <- ggarrange(p3.1, p3.2, labels = c("BoB", "IoM"), label.x = 0.04, label.y = 0.87, ncol = 1, nrow = 2)
+p3 <- NULL
+p3 <- ggarrange(p3.1, p3.2, labels = c("Bullers of Buchan", "Isle of May"), hjust = -0.5, vjust = 4, ncol = 1, nrow = 2)
+#p3 <- ggarrange(p3.1, p3.2, labels = c("Bullers of Buchan", "Isle of May"), label.x = 0.04, label.y = 0.87, ncol = 1, nrow = 2)
 p3 <- annotate_figure(p3, left = text_grob("Frequency", color="black", rot=90, face="bold"), bottom = text_grob("Age", face="bold"))
 
 p3
@@ -958,7 +990,7 @@ p3
 ##Histograms of chicks fledged
 
 ###2018 IoM
-p4v <- data.frame(RS = RSData$RS[which(RSData$Year == 2018 & RSData$colony == "IoM")])
+p4v <- data.frame(RS = RSData$RS[which(RSData$Year == 2018 & RSData$colony == "Isle of May")])
 p4.1 <- ggplot(p4v, aes(x = RS)) +
   geom_histogram(binwidth = 1, fill="grey", color="black", alpha=0.5, position="identity") +
   theme(axis.title.x=element_blank(), axis.title.y=element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
@@ -968,7 +1000,7 @@ p4.1 <- ggplot(p4v, aes(x = RS)) +
 p4.1
 
 ###2019 IoM
-p4v <- data.frame(RS = RSData$RS[which(RSData$Year == 2019 & RSData$colony == "IoM")])
+p4v <- data.frame(RS = RSData$RS[which(RSData$Year == 2019 & RSData$colony == "Isle of May")])
 p4.2 <- ggplot(p4v, aes(x = RS)) +
   geom_histogram(binwidth = 1, fill="grey", color="black", alpha=0.5, position="identity") +
   theme(axis.title.x=element_blank(), axis.title.y=element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
@@ -978,7 +1010,7 @@ p4.2 <- ggplot(p4v, aes(x = RS)) +
 p4.2
 
 ###2018 BoB
-p4v <- data.frame(RS = RSData$RS[which(RSData$Year == 2018 & RSData$colony == "BoB")])
+p4v <- data.frame(RS = RSData$RS[which(RSData$Year == 2018 & RSData$colony == "Bullers of Buchan")])
 p4.3 <- ggplot(p4v, aes(x = RS)) +
   geom_histogram(binwidth = 1, fill="grey", color="black", alpha=0.5, position="identity") +
   theme(axis.title.x=element_blank(), axis.title.y=element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
@@ -988,7 +1020,7 @@ p4.3 <- ggplot(p4v, aes(x = RS)) +
 p4.3
 
 ###2019 BoB
-p4v <- data.frame(RS = RSData$RS[which(RSData$Year == 2019 & RSData$colony == "BoB")])
+p4v <- data.frame(RS = RSData$RS[which(RSData$Year == 2019 & RSData$colony == "Bullers of Buchan")])
 p4.4 <- ggplot(p4v, aes(x = RS)) +
   geom_histogram(binwidth = 1, fill="grey", color="black", alpha=0.5, position="identity") +
   theme(axis.title.x=element_blank(), axis.title.y=element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
@@ -1011,6 +1043,10 @@ p4
 RSDataP <- RSData
 RSDataP$Cohort <- "both years"
 RSDataP <- rbind(RSDataP, RSData)
+RSDataP$colony <- as.character(RSDataP$colony)
+RSDataP$colony[RSDataP$colony == "Bullers of Buchan"] <- as.character("BoB") 
+RSDataP$colony[RSDataP$colony == "Isle of May"] <- as.character("IoM") 
+RSDataP$colony <- as.factor(RSDataP$colony)
 
 p5 <- ggplot(RSDataP, aes(x = colony, y = RS, width = 0.5)) 
 
@@ -1038,11 +1074,12 @@ RSDataP7 <- merge(RSDataP7, aggregate(RSData.with.age[, 'RS'], list(RSData.with.
 RSDataP7 <- merge(RSDataP7, aggregate(RSData.with.age[, 'RS'], list(RSData.with.age$age), FUN = "length"), by="Group.1")
 names(RSDataP7) <- c("Year.RS", "Mean.RS", "SD.RS", "N.RS")
 RSDataP7$SE.RS <- RSDataP7$SD.RS / sqrt(RSDataP7$N.RS - 1)
+RSDataP7$CI95 <- RSDataP7$SE.RS * 1.96
 
 p7 <- ggplot(RSDataP7, aes(x = Year.RS, y = Mean.RS)) +
   geom_bar(stat="identity") +
   ylim(c(0, 3)) +
-  geom_errorbar(aes(ymin = Mean.RS - SE.RS, ymax = Mean.RS + SE.RS), width = 0.2, position=position_dodge(0.9)) +
+  geom_errorbar(aes(ymin = Mean.RS - CI95, ymax = Mean.RS + CI95), width = 0.2, position=position_dodge(0.9)) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
   labs(x = "Age group", y = "Mean reproductive output") 
 
@@ -1050,6 +1087,51 @@ p7
 
 #-#-#-#
 
+##reproductive success of different sexes and colonies - this graph doesn't really work, don't use 
+
+### BoB
+
+#TDF <- subset(RSData, colony == "Bullers of Buchan" & sex != "NA")
+TDF <- subset(RSData, Cohort == "2017-2018" & sex != "NA")
+
+p9.1 <- ggplot(TDF, aes(x = RS)) +
+  geom_histogram(binwidth = 1, fill="grey", color="black", alpha=0.5, position="identity") +
+  aes(y = stat(count)/sum(stat(count))) +
+  #xlim(c(3,20)) +
+  #ylim(c(0,13)) +
+ # scale_y_continuous(breaks=c(0,5,10), limits=c(0,10)) +
+  theme(axis.title.x=element_blank(), axis.title.y=element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
+  labs(x = "Reproductive success", y = "Frequency") +
+  facet_grid(sex ~ colony)
+
+p9.1
+
+### IoM
+
+#TDF <- subset(RSData, colony == "Isle of May" & sex != "NA")
+TDF <- subset(RSData, Cohort == "2017-2018" & sex != "NA")
+
+p9.2 <- ggplot(TDF, aes(x = RS)) +
+  geom_histogram(binwidth = 1, fill="grey", color="black", alpha=0.5, position="identity") +
+  aes(y = stat(count)/sum(stat(count))) +
+  #xlim(c(3,20)) +
+   #ylim(c(0,13)) +
+#  scale_y_continuous(breaks=c(0,5,10), limits=c(0,10)) +
+  theme(axis.title.x=element_blank(), axis.title.y=element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
+  labs(x = "Reproductive success", y = "Frequency") +
+  facet_grid(sex ~ colony)
+
+p9.2
+
+### years and colonies combined
+p9 <- NULL
+p9 <- ggarrange(p9.1, p9.2, labels = c("1st", "2nd"), hjust = -0.5, vjust = 4, ncol = 1, nrow = 2)
+#p9 <- ggarrange(p9.1, p9.2, labels = c("Bullers of Buchan", "Isle of May"), label.x = 0.04, label.y = 0.87, ncol = 1, nrow = 2)
+p9 <- annotate_figure(p9, left = text_grob("Frequency", color="black", rot=90, face="bold"), bottom = text_grob("Age", face="bold"))
+
+p9
+
+#-#-#-#
 
 
 
