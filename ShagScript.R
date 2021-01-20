@@ -1,6 +1,15 @@
 #notes:
 
-#Libraries
+
+
+#load libraries, install what's missing
+list.of.packages <- c("readxl", "writexl", "lme4", "ggplot2", "dfoptim", "optimx", 
+                      "ggfortify", "jtools", "ggstance", "broom", "broom.mixed", "ggpubr", "MuMIn")
+
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages) > 0 ) install.packages(new.packages)
+
+##Libraries
 library("readxl")
 library("writexl")
 library("lme4")
@@ -571,6 +580,20 @@ model2j <- glmer(RS ~ colony + age + (1|CRCode) + (1|AttemptID), data = RSData.w
 model2k <- glmer(RS ~ colony + Year + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson")
 
 anova(model2a, model2b, model2c, model2d, model2e, model2f, model2g, model2h, model2i, model2j, model2k)
+
+model.sel(model2a, model2b, model2c, model2d, model2e, model2f, model2g, model2h, model2i, model2j, model2k)
+
+overdisp_fun(model2a)
+overdisp_fun(model2b)
+overdisp_fun(model2c)
+overdisp_fun(model2d)
+overdisp_fun(model2e)
+overdisp_fun(model2f)
+overdisp_fun(model2g)
+overdisp_fun(model2h)
+overdisp_fun(model2i)
+overdisp_fun(model2j)
+overdisp_fun(model2k)
 
 summary(model2a)
 summary(model2b) ##best
