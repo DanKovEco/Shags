@@ -4,7 +4,7 @@
 
 #load libraries, install what's missing
 list.of.packages <- c("readxl", "writexl", "lme4", "ggplot2", "dfoptim", "optimx", 
-                      "ggfortify", "jtools", "ggstance", "broom", "broom.mixed", "ggpubr", "MuMIn")
+                      "ggfortify", "jtools", "ggstance", "broom", "broom.mixed", "ggpubr", "MuMIn", "arm")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages) > 0 ) install.packages(new.packages)
@@ -23,6 +23,7 @@ library("broom")
 library("broom.mixed")
 library("ggpubr")
 library("MuMIn")
+library("arm")
 
 #Global Variables
 
@@ -41,6 +42,10 @@ FileName_Outpout_OBS <- "Shag Workbook.xlsx"
 FileName_RS <- "RS_Data.xlsx" 
 FileSheetNumber <- 3 ## the number of the sheet being imported
 FileName_Outpout_RS <- "Shag GLMM.xlsx" 
+
+###Model Selection Tables
+
+FileName_Outpout_MST <- "Model Selection Tables.xlsx"
 
 ##global static variables
 WinterWeight <- 1.1 #strength of 'depth of winter' weighting
@@ -536,15 +541,29 @@ RSData.with.sexandage <- subset(RSData, sex != "NA" & !is.na(age))
 
 #Model #1 - year, colony
 
-model1a <- glmer(RS ~ Year + colony + (1|CRCode) + (1|AttemptID), data = RSData, family = "poisson")
-model1b <- glmer(RS ~ colony + (1|CRCode) + (1|AttemptID), data = RSData, family = "poisson")
-model1c <- glmer(RS ~ Year + (1|CRCode) + (1|AttemptID), data = RSData, family = "poisson")
-model1d <- glmer(RS ~ Year*colony + (1|CRCode) + (1|AttemptID), data = RSData, family = "poisson")
-model1e <- glmer(RS ~ (1|CRCode) + (1|AttemptID), data = RSData, family = "poisson")
+model1a <- glmer(RS ~ Year + colony + (1|CRCode) + (1|AttemptID), data = RSData, family = "poisson", na.action = "na.fail")
+model1b <- glmer(RS ~ colony + (1|CRCode) + (1|AttemptID), data = RSData, family = "poisson", na.action = "na.fail")
+model1c <- glmer(RS ~ Year + (1|CRCode) + (1|AttemptID), data = RSData, family = "poisson", na.action = "na.fail")
+model1d <- glmer(RS ~ Year*colony + (1|CRCode) + (1|AttemptID), data = RSData, family = "poisson", na.action = "na.fail")
+model1e <- glmer(RS ~ (1|CRCode) + (1|AttemptID), data = RSData, family = "poisson", na.action = "na.fail")
 
-anova(model1a, model1b, model1c, model1d, model1e)
 
-model.sel(model1a, model1b, model1c, model1d, model1e)
+
+model1 <- standardize(model1a, standardize.y = FALSE)
+summary(model1)
+models.set.1 <- dredge(model1)
+models.best.1 <- get.models(model.set.1, subset = delta < 2)
+model.avg(models.best.1) # zero method
+summary(model.avg(models.best.1)) # zero method
+confint(model.avg(models.best.1)) # gives confidence intervals but only for conditional averages
+
+ModSelTab1a <- anova(model1a, model1b, model1c, model1d, model1e)
+ModSelTab1b <- model.sel(model1a, model1b, model1c, model1d, model1e)
+ModSelTab1 <- merge(ModSelTab1a[, c('npar','AIC','BIC','deviance','Chisq','Pr(>Chisq)')], ModSelTab1b[, c('df','logLik','AICc','delta','weight')], by = 'row.names')
+
+
+
+
 
 overdisp_fun(model1a)
 overdisp_fun(model1b)
@@ -567,21 +586,37 @@ summ(model1b, confint=TRUE, digits=3)
 
 #model #2 - year, colony, age
 
-model2a <- glmer(RS ~ Year*colony*age + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson")
-model2b <- glmer(RS ~ colony*age + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson")
-model2c <- glmer(RS ~ Year*age + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson")
-model2d <- glmer(RS ~ Year*colony + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson")
-model2e <- glmer(RS ~ colony*age + Year + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson")
-model2f <- glmer(RS ~ Year*age + colony + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson")
-model2g <- glmer(RS ~ Year*colony + age + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson")
-model2h <- glmer(RS ~ Year + colony + age + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson")
-model2i <- glmer(RS ~ Year + age + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson")
-model2j <- glmer(RS ~ colony + age + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson")
-model2k <- glmer(RS ~ colony + Year + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson")
+model2a <- glmer(RS ~ Year*colony*age + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson", na.action = "na.fail")
+model2b <- glmer(RS ~ colony*age + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson", na.action = "na.fail")
+model2c <- glmer(RS ~ Year*age + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson", na.action = "na.fail")
+model2d <- glmer(RS ~ Year*colony + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson", na.action = "na.fail")
+model2e <- glmer(RS ~ colony*age + Year + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson", na.action = "na.fail")
+model2f <- glmer(RS ~ Year*age + colony + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson", na.action = "na.fail")
+model2g <- glmer(RS ~ Year*colony + age + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson", na.action = "na.fail")
+model2h <- glmer(RS ~ Year + colony + age + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson", na.action = "na.fail")
+model2i <- glmer(RS ~ Year + age + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson", na.action = "na.fail")
+model2j <- glmer(RS ~ colony + age + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson", na.action = "na.fail")
+model2k <- glmer(RS ~ colony + Year + (1|CRCode) + (1|AttemptID), data = RSData.with.age, family = "poisson", na.action = "na.fail")
 
 anova(model2a, model2b, model2c, model2d, model2e, model2f, model2g, model2h, model2i, model2j, model2k)
 
 model.sel(model2a, model2b, model2c, model2d, model2e, model2f, model2g, model2h, model2i, model2j, model2k)
+
+model2 <- standardize(model2a, standardize.y = FALSE)
+summary(model2)
+models.set.2 <- dredge(model2)
+models.best.2 <- get.models(models.set.2, subset = delta < 2)
+model.avg(models.best.2) # zero method
+summary(model.avg(models.best.2)) # zero method
+confint(model.avg(models.best.2)) # gives confidence intervals but only for conditional averages
+
+ModSelTab2a <- anova(model2a, model2b, model2c, model2d, model2e, model2f, model2g, model2h, model2i, model2j, model2k)
+ModSelTab2b <- model.sel(model2a, model2b, model2c, model2d, model2e, model2f, model2g, model2h, model2i, model2j, model2k)
+ModSelTab2 <- merge(ModSelTab2a[, c('npar','AIC','BIC','deviance','Chisq','Pr(>Chisq)')], ModSelTab2b[, c('df','logLik','AICc','delta','weight')], by = 'row.names')
+
+#plot_summs(model.avg(models.best.2), scale=TRUE, inner_ci_level = 0.95) # dont work with averages
+#effect_plot(model.avg(models.best.2), pred = colony, interval=TRUE, plot.points=TRUE) # dont work with averages
+
 
 overdisp_fun(model2a)
 overdisp_fun(model2b)
@@ -619,24 +654,52 @@ plot_summs(model2a, model2b, model2e, scale=TRUE)
 
 #model #3 - year, colony, sex
 
-model3a <- glmer(RS ~ Year*colony*sex + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson")
-model3b <- glmer(RS ~ colony*sex + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson")
-model3c <- glmer(RS ~ Year*sex + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson")
-model3d <- glmer(RS ~ Year*colony + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson")
-model3e <- glmer(RS ~ colony*sex + Year + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson")
-model3f <- glmer(RS ~ Year*sex + colony + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson")
-model3g <- glmer(RS ~ Year*colony + sex + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson")
-model3h <- glmer(RS ~ Year + colony + sex + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson")
-model3i <- glmer(RS ~ Year + sex + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson")
-model3j <- glmer(RS ~ colony + sex + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson")
-model3k <- glmer(RS ~ colony + Year + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson")
+model3a <- glmer(RS ~ Year*colony*sex + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson", na.action = "na.fail")
+model3b <- glmer(RS ~ colony*sex + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson", na.action = "na.fail")
+model3c <- glmer(RS ~ Year*sex + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson", na.action = "na.fail")
+model3d <- glmer(RS ~ Year*colony + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson", na.action = "na.fail")
+model3e <- glmer(RS ~ colony*sex + Year + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson", na.action = "na.fail")
+model3f <- glmer(RS ~ Year*sex + colony + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson", na.action = "na.fail")
+model3g <- glmer(RS ~ Year*colony + sex + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson", na.action = "na.fail")
+model3h <- glmer(RS ~ Year + colony + sex + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson", na.action = "na.fail")
+model3i <- glmer(RS ~ Year + sex + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson", na.action = "na.fail")
+model3j <- glmer(RS ~ colony + sex + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson", na.action = "na.fail")
+model3k <- glmer(RS ~ colony + Year + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson", na.action = "na.fail")
 
 anova(model3a, model3b, model3c, model3d, model3e, model3f, model3g, model3h, model3i, model3j, model3k)
+model.sel(model3a, model3b, model3c, model3d, model3e, model3f, model3g, model3h, model3i, model3j, model3k)
 
 summary(model3k) ##best
 summary(model3d) 
 summary(model3j)
 summary(model3h)
+
+model3 <- standardize(model3a, standardize.y = FALSE)
+summary(model3)
+models.set.3 <- dredge(model3)
+models.best.3 <- get.models(models.set.3, subset = delta < 2)
+model.avg(models.best.3) # zero method
+summary(model.avg(models.best.3)) # zero method
+confint(model.avg(models.best.3)) # gives confidence intervals but only for conditional averages
+
+ModSelTab3a <- anova(model3a, model3b, model3c, model3d, model3e, model3f, model3g, model3h, model3i, model3j, model3k)
+ModSelTab3b <- model.sel(model3a, model3b, model3c, model3d, model3e, model3f, model3g, model3h, model3i, model3j, model3k)
+ModSelTab3 <- merge(ModSelTab3a[, c('npar','AIC','BIC','deviance','Chisq','Pr(>Chisq)')], ModSelTab3b[, c('df','logLik','AICc','delta','weight')], by = 'row.names')
+
+overdisp_fun(model3a)
+overdisp_fun(model3b)
+overdisp_fun(model3c)
+overdisp_fun(model3d)
+overdisp_fun(model3e)
+overdisp_fun(model3f)
+overdisp_fun(model3g)
+overdisp_fun(model3h)
+overdisp_fun(model3i)
+overdisp_fun(model3j)
+overdisp_fun(model3k)
+
+
+
 
 #summ(model3a, confint=TRUE, digits=3)
 #summ(model3b, confint=TRUE, digits=3) ##best
@@ -681,7 +744,49 @@ anova(model4a)
 
 #-#-#-#
 
+#Model selection table export
+
+write_xlsx(list("Model1" = ModSelTab1,
+                "Model2" = ModSelTab2,
+                "Model3" = ModSelTab3
+                ),
+            paste(FilePath_Master, FileName_Outpout_MST, sep = ""))
+
+#-#-#-#
+
 #descriptive stats
+
+##mean reproductive success and 95% bootstrap CI
+
+###2018 BoB
+mean(RSData$RS[which(RSData$colony == "Bullers of Buchan" & RSData$Year == 2018)]) 
+l95ci(RSData$RS[which(RSData$colony == "Bullers of Buchan" & RSData$Year == 2018)]) 
+h95ci(RSData$RS[which(RSData$colony == "Bullers of Buchan" & RSData$Year == 2018)]) 
+
+###2019 BoB
+mean(RSData$RS[which(RSData$colony == "Bullers of Buchan" & RSData$Year == 2019)]) 
+l95ci(RSData$RS[which(RSData$colony == "Bullers of Buchan" & RSData$Year == 2019)]) 
+h95ci(RSData$RS[which(RSData$colony == "Bullers of Buchan" & RSData$Year == 2019)]) 
+
+###both years BoB
+mean(RSData$RS[which(RSData$colony == "Bullers of Buchan")]) 
+l95ci(RSData$RS[which(RSData$colony == "Bullers of Buchan")]) 
+h95ci(RSData$RS[which(RSData$colony == "Bullers of Buchan")]) 
+
+###2018 IoM
+mean(RSData$RS[which(RSData$colony == "Isle of May" & RSData$Year == 2018)]) 
+l95ci(RSData$RS[which(RSData$colony == "Isle of May" & RSData$Year == 2018)]) 
+h95ci(RSData$RS[which(RSData$colony == "Isle of May" & RSData$Year == 2018)]) 
+
+###2019 IoM
+mean(RSData$RS[which(RSData$colony == "Isle of May" & RSData$Year == 2019)]) 
+l95ci(RSData$RS[which(RSData$colony == "Isle of May" & RSData$Year == 2019)]) 
+h95ci(RSData$RS[which(RSData$colony == "Isle of May" & RSData$Year == 2019)]) 
+
+###both years IoM
+mean(RSData$RS[which(RSData$colony == "Isle of May")]) 
+l95ci(RSData$RS[which(RSData$colony == "Isle of May")]) 
+h95ci(RSData$RS[which(RSData$colony == "Isle of May")])
 
 ##counting only relevant observations
 date1718start <- as.Date("01/09/2017",format="%d/%m/%Y")
@@ -854,6 +959,17 @@ mad(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan" & RS
 mad(RSData.with.age$age[which(RSData.with.age$colony == "Isle of May")]) # median absolute deviation of age of IoM migrants 
 mad(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan")]) # median absolute deviation of age of BoB migrants 
 
+#T test
+#t.test(RSData.with.age$age ~ RSData.with.age$colony) # t test
+wilcox.test(RSData.with.age$age[RSData.with.age$Year == 2018] ~ RSData.with.age$colony[RSData.with.age$Year == 2018]) #mann whitney in 18
+wilcox.test(RSData.with.age$age[RSData.with.age$Year == 2019] ~ RSData.with.age$colony[RSData.with.age$Year == 2019]) #mann whitney in 19
+
+##sample sizes
+length(which(RSData.with.age$Year == 2018 & RSData.with.age$colony == "Isle of May"))
+length(which(RSData.with.age$Year == 2019 & RSData.with.age$colony == "Isle of May"))
+length(which(RSData.with.age$Year == 2018 & RSData.with.age$colony == "Bullers of Buchan"))
+length(which(RSData.with.age$Year == 2019 & RSData.with.age$colony == "Bullers of Buchan"))
+
 #-#-#-#
 
 ##extra info from reproductive success data
@@ -861,6 +977,10 @@ mad(RSData.with.age$age[which(RSData.with.age$colony == "Bullers of Buchan")]) #
 ###all breeders
 tapply(RSData$AttemptID, RSData$colony, FUN = function(x) length(unique(x))) #number of nests providing data for the model
 tapply(RSData$CRCode, RSData$colony, FUN = function(x) length(unique(x))) #number of individuals providing data for the model
+length(which(RSData$Year == 2018 & RSData$colony == "Bullers of Buchan")) #number of BoB providing data for the model 2018
+length(which(RSData$Year == 2019 & RSData$colony == "Bullers of Buchan")) #number of BoB providing data for the model 2019
+length(which(RSData$Year == 2018 & RSData$colony == "Isle of May")) #number of IoM providing data for the model 2018
+length(which(RSData$Year == 2019 & RSData$colony == "Isle of May")) #number of IoM providing data for the model 2019
 
 ###breeders of known age
 tapply(RSData.with.age$AttemptID, RSData.with.age$colony, FUN = function(x) length(unique(x))) #number of nests providing data for the model
@@ -948,7 +1068,7 @@ ShagsFemaleIoM2019  <- length(which(RSData$sex == "F" & RSData$Year == "2019" & 
 ShagsMaleIoM2019    <- length(which(RSData$sex == "M" & RSData$Year == "2019" & RSData$colony == "Isle of May"))  # number of males in 2019
 ShagsUnknownIoM2019 <- length(which(RSData$sex == "NA" & RSData$Year == "2019" & RSData$colony == "Isle of May")) # number of unknown sexes in 2019
 ShagsMaleIoM2019/ShagsFemaleIoM2019 # male to female ratio in 2019
-ShagsFemaleIoM2019/ShagsMaleIoM2019 # female to mamale ratio in 2019
+ShagsFemaleIoM2019/ShagsMaleIoM2019 # female to male ratio in 2019
 
 
 chisq.test(x=c(ShagsFemaleIoM2018, ShagsMaleIoM2018), p=c(0.5, 0.5)) # IoM 2018
