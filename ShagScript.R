@@ -4,7 +4,7 @@
 
 #load libraries, install what's missing
 list.of.packages <- c("readxl", "writexl", "lme4", "ggplot2", "dfoptim", "optimx", 
-                      "ggfortify", "jtools", "ggstance", "broom", "broom.mixed", "ggpubr", "MuMIn", "arm")
+                      "ggfortify", "jtools", "ggstance", "broom", "broom.mixed", "ggpubr", "MuMIn", "arm","stats")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages) > 0 ) install.packages(new.packages)
@@ -24,6 +24,7 @@ library("broom.mixed")
 library("ggpubr")
 library("MuMIn")
 library("arm")
+library("stats")
 
 #Global Variables
 
@@ -93,6 +94,37 @@ h95ci <- function(V){
   }
   
   return(quantile(a, 0.975))
+}
+
+## ratios confidence intervals
+### p = probability
+### q = 1-p
+### n = sample size
+### r = positive individuals
+### z = z (1-alpha/2) from normal distribution = 1.96
+
+###lower
+pl95ci <- function(r, n){
+  z <- 1.96
+  p <- r/n
+  q <- 1-p
+  A <- (2 * r) + z^2
+  B <- z * sqrt((z^2) + (4 * r * q)) 
+  C <- 2 * (n + z^2)
+
+  return((A - B)/C)
+}
+
+###higher
+ph95ci <- function(r, n){
+  z <- 1.96
+  p <- r/n
+  q <- 1-p
+  A <- (2 * r) + z^2
+  B <- z * sqrt((z^2) + (4 * r * q)) 
+  C <- 2 * (n + z^2)
+
+  return((A + B)/C)
 }
 
 #-#-#-#
@@ -547,23 +579,23 @@ model1c <- glmer(RS ~ Year + (1|CRCode) + (1|AttemptID), data = RSData, family =
 model1d <- glmer(RS ~ Year*colony + (1|CRCode) + (1|AttemptID), data = RSData, family = "poisson", na.action = "na.fail")
 model1e <- glmer(RS ~ (1|CRCode) + (1|AttemptID), data = RSData, family = "poisson", na.action = "na.fail")
 
+anova(model1a, model1b, model1c, model1d, model1e)
 
-
-model1 <- standardize(model1a, standardize.y = FALSE)
-summary(model1)
-models.set.1 <- dredge(model1)
-models.best.1 <- get.models(model.set.1, subset = delta < 2)
-model.avg(models.best.1) # zero method
-summary(model.avg(models.best.1)) # zero method
-confint(model.avg(models.best.1)) # gives confidence intervals but only for conditional averages
+#model1 <- standardize(model1a, standardize.y = FALSE)
+#summary(model1)
+#models.set.1 <- dredge(model1)
+#models.best.1 <- get.models(models.set.1, subset = delta < 2)
+#model.avg(models.best.1) # zero method
+#summary(model.avg(models.best.1)) # zero method
+#confint(model.avg(models.best.1)) # gives confidence intervals but only for conditional averages
 
 ModSelTab1a <- anova(model1a, model1b, model1c, model1d, model1e)
-ModSelTab1b <- model.sel(model1a, model1b, model1c, model1d, model1e)
-ModSelTab1 <- merge(ModSelTab1a[, c('npar','AIC','BIC','deviance','Chisq','Pr(>Chisq)')], ModSelTab1b[, c('df','logLik','AICc','delta','weight')], by = 'row.names')
+LowestAIC <- min(ModSelTab1a$AIC)
+ModSelTab1a$Delta <- ModSelTab1a$AIC - LowestAIC
+ModSelTab1a$ModelID <- row.names(ModSelTab1a)
 
-
-
-
+#ModSelTab1b <- model.sel(model1a, model1b, model1c, model1d, model1e)
+#ModSelTab1 <- merge(ModSelTab1a[, c('npar','AIC','BIC','deviance','Chisq','Pr(>Chisq)')], ModSelTab1b[, c('df','logLik','AICc','delta','weight')], by = 'row.names')
 
 overdisp_fun(model1a)
 overdisp_fun(model1b)
@@ -572,15 +604,7 @@ overdisp_fun(model1d)
 overdisp_fun(model1e)
 
 summary(model1a) ##within 2 AIC
-summary(model1b) ##within 2 AIC but lower
-
-overdisp_fun(model1a)
-
 summ(model1a, confint=TRUE, digits=3)
-summ(model1b, confint=TRUE, digits=3)
-
-#cc <- confint(model1a, parm="beta_", level = 0.95)
-#cc
 
 #-#-#-#
 
@@ -600,23 +624,10 @@ model2k <- glmer(RS ~ colony + Year + (1|CRCode) + (1|AttemptID), data = RSData.
 
 anova(model2a, model2b, model2c, model2d, model2e, model2f, model2g, model2h, model2i, model2j, model2k)
 
-model.sel(model2a, model2b, model2c, model2d, model2e, model2f, model2g, model2h, model2i, model2j, model2k)
-
-model2 <- standardize(model2a, standardize.y = FALSE)
-summary(model2)
-models.set.2 <- dredge(model2)
-models.best.2 <- get.models(models.set.2, subset = delta < 2)
-model.avg(models.best.2) # zero method
-summary(model.avg(models.best.2)) # zero method
-confint(model.avg(models.best.2)) # gives confidence intervals but only for conditional averages
-
 ModSelTab2a <- anova(model2a, model2b, model2c, model2d, model2e, model2f, model2g, model2h, model2i, model2j, model2k)
-ModSelTab2b <- model.sel(model2a, model2b, model2c, model2d, model2e, model2f, model2g, model2h, model2i, model2j, model2k)
-ModSelTab2 <- merge(ModSelTab2a[, c('npar','AIC','BIC','deviance','Chisq','Pr(>Chisq)')], ModSelTab2b[, c('df','logLik','AICc','delta','weight')], by = 'row.names')
-
-#plot_summs(model.avg(models.best.2), scale=TRUE, inner_ci_level = 0.95) # dont work with averages
-#effect_plot(model.avg(models.best.2), pred = colony, interval=TRUE, plot.points=TRUE) # dont work with averages
-
+LowestAIC <- min(ModSelTab2a$AIC)
+ModSelTab2a$Delta <- ModSelTab2a$AIC - LowestAIC
+ModSelTab2a$ModelID <- row.names(ModSelTab2a)
 
 overdisp_fun(model2a)
 overdisp_fun(model2b)
@@ -630,21 +641,76 @@ overdisp_fun(model2i)
 overdisp_fun(model2j)
 overdisp_fun(model2k)
 
-summary(model2a)
-summary(model2b) ##best
-summary(model2e)
-
+summary(model2b) 
 summ(model2a, confint=TRUE, digits=3)
-summ(model2b, confint=TRUE, digits=3) ##best
-summ(model2e, confint=TRUE, digits=3)
+
+effect_plot(model2a, pred = colony, interval=TRUE, plot.points=TRUE)
+plot_summs(model2a, scale=TRUE, inner_ci_level = 0.95)
+plot_summs(model2a, model2b, model2e, scale=TRUE)
+
+#model.sel(model2a, model2b, model2c, model2d, model2e, model2f, model2g, model2h, model2i, model2j, model2k)
+
+#model2 <- standardize(model2a, standardize.y = FALSE) # BoB taken as base level factor I think
+#summary(model2)
+#models.set.2 <- dredge(model2)
+#models.best.2 <- get.models(models.set.2, subset = delta < 2)
+#model.avg.2 <- model.avg(models.best.2) # zero method
+#summary(model.avg.2) # zero method
+#model.avg.CI.2 <- confint(model.avg.2) # gives confidence intervals but only for conditional averages
+
+#model.avg.2$coefArray
+
+#invlogit(model.avg.2$coefficients)
+#invlogit(model.avg.CI.2)
+
+
+
+##
+#testing something
+#RSData.TEST <- RSData.with.age
+#RSData.TEST$colony <- as.character(RSData.TEST$colony)
+#RSData.TEST$colony[which(RSData.TEST$colony == "Bullers of Buchan")] <- 2
+#RSData.TEST$colony[which(RSData.TEST$colony == "Isle of May")] <- 1
+#RSData.TEST$colony <- as.factor(RSData.TEST$colony)
+
+#model2a <- glmer(RS ~ Year*colony*age + (1|CRCode) + (1|AttemptID), data = RSData.TEST, family = "poisson", na.action = "na.fail")
+#model2 <- standardize(model2a, standardize.y = FALSE)
+#summary(model2)
+#models.set.2 <- dredge(model2)
+#models.best.2 <- get.models(models.set.2, subset = delta < 2)
+#model.avg.2 <- model.avg(models.best.2) # zero method
+#summary(model.avg.2) # zero method
+#model.avg.CI.2 <- confint(model.avg.2) # gives confidence intervals but only for conditional averages
+
+
+#invlogit(model.avg.2$coefficients)
+#invlogit(model.avg.CI.2)
+
+#predict(model.avg(models.best.2), type = "link", backtransform = TRUE) # don't knwo what this output is
+
+
+#ModSelTab2x <- model.sel(models.set.2, rank = "AICc", rank.args = c("AICc","deviance","AIC"))
+#anova.glm(models.set.2)
+#stats:::anova.glmlist(models.set.2)
+
+##
+  
+#ModSelTab2a <- anova(model2a, model2b, model2c, model2d, model2e, model2f, model2g, model2h, model2i, model2j, model2k)
+#ModSelTab2b <- model.sel(model2a, model2b, model2c, model2d, model2e, model2f, model2g, model2h, model2i, model2j, model2k)
+#ModSelTab2 <- merge(ModSelTab2a[, c('npar','AIC','BIC','deviance','Chisq','Pr(>Chisq)')], ModSelTab2b[, c('df','logLik','AICc','delta','weight')], by = 'row.names')
+
+#plot_summs(model.avg(models.best.2), scale=TRUE, inner_ci_level = 0.95) # dont work with averages
+#effect_plot(model.avg(models.best.2), pred = colony, interval=TRUE, plot.points=TRUE) # dont work with averages
+
+
+
+
 
 #!!! test for overdispersion here too
 
 ###attempts at visualisation
 
-effect_plot(model2a, pred = colony, interval=TRUE, plot.points=TRUE)
-plot_summs(model2a, scale=TRUE, inner_ci_level = 0.95)
-plot_summs(model2a, model2b, model2e, scale=TRUE)
+
 
 
 #cc <- confint(model2b, parm="beta_", level = 0.95)
@@ -667,24 +733,11 @@ model3j <- glmer(RS ~ colony + sex + (1|CRCode) + (1|AttemptID), data = RSData.w
 model3k <- glmer(RS ~ colony + Year + (1|CRCode) + (1|AttemptID), data = RSData.with.sex, family = "poisson", na.action = "na.fail")
 
 anova(model3a, model3b, model3c, model3d, model3e, model3f, model3g, model3h, model3i, model3j, model3k)
-model.sel(model3a, model3b, model3c, model3d, model3e, model3f, model3g, model3h, model3i, model3j, model3k)
-
-summary(model3k) ##best
-summary(model3d) 
-summary(model3j)
-summary(model3h)
-
-model3 <- standardize(model3a, standardize.y = FALSE)
-summary(model3)
-models.set.3 <- dredge(model3)
-models.best.3 <- get.models(models.set.3, subset = delta < 2)
-model.avg(models.best.3) # zero method
-summary(model.avg(models.best.3)) # zero method
-confint(model.avg(models.best.3)) # gives confidence intervals but only for conditional averages
 
 ModSelTab3a <- anova(model3a, model3b, model3c, model3d, model3e, model3f, model3g, model3h, model3i, model3j, model3k)
-ModSelTab3b <- model.sel(model3a, model3b, model3c, model3d, model3e, model3f, model3g, model3h, model3i, model3j, model3k)
-ModSelTab3 <- merge(ModSelTab3a[, c('npar','AIC','BIC','deviance','Chisq','Pr(>Chisq)')], ModSelTab3b[, c('df','logLik','AICc','delta','weight')], by = 'row.names')
+LowestAIC <- min(ModSelTab3a$AIC)
+ModSelTab3a$Delta <- ModSelTab3a$AIC - LowestAIC
+ModSelTab3a$ModelID <- row.names(ModSelTab3a)
 
 overdisp_fun(model3a)
 overdisp_fun(model3b)
@@ -697,6 +750,23 @@ overdisp_fun(model3h)
 overdisp_fun(model3i)
 overdisp_fun(model3j)
 overdisp_fun(model3k)
+
+summary(model3k) ##best
+summ(model3k)
+
+#model3 <- standardize(model3a, standardize.y = FALSE)
+#summary(model3)
+#models.set.3 <- dredge(model3)
+#models.best.3 <- get.models(models.set.3, subset = delta < 2)
+#model.avg(models.best.3) # zero method
+#summary(model.avg(models.best.3)) # zero method
+#confint(model.avg(models.best.3)) # gives confidence intervals but only for conditional averages
+
+#ModSelTab3a <- anova(model3a, model3b, model3c, model3d, model3e, model3f, model3g, model3h, model3i, model3j, model3k)
+#ModSelTab3b <- model.sel(model3a, model3b, model3c, model3d, model3e, model3f, model3g, model3h, model3i, model3j, model3k)
+#ModSelTab3 <- merge(ModSelTab3a[, c('npar','AIC','BIC','deviance','Chisq','Pr(>Chisq)')], ModSelTab3b[, c('df','logLik','AICc','delta','weight')], by = 'row.names')
+
+
 
 
 
@@ -717,10 +787,10 @@ overdisp_fun(model3k)
 
 #model #4 - year, colony, age, sex
 
-model4a <- glmer(RS ~ Year*colony*age*sex + (1|CRCode) + (1|AttemptID), data = RSData.with.sexandage, family = "poisson")
+#model4a <- glmer(RS ~ Year*colony*age*sex + (1|CRCode) + (1|AttemptID), data = RSData.with.sexandage, family = "poisson")
 #!!! do only relevant ones, there would be too many
 
-anova(model4a)
+#anova(model4a)
 
 #modelx <- glmer(RS ~ Year*colony*age + (1|CRCode) + (1|AttemptID), data = RSData.with.sexandage, family = "poisson")
 #summ(modelx, confint=TRUE, digits=3)
@@ -746,9 +816,9 @@ anova(model4a)
 
 #Model selection table export
 
-write_xlsx(list("Model1" = ModSelTab1,
-                "Model2" = ModSelTab2,
-                "Model3" = ModSelTab3
+write_xlsx(list("Model1" = ModSelTab1a,
+                "Model2" = ModSelTab2a,
+                "Model3" = ModSelTab3a
                 ),
             paste(FilePath_Master, FileName_Outpout_MST, sep = ""))
 
@@ -1027,15 +1097,67 @@ p2
 
 #-#-#-#
 
-##WIP survey effort histogram
-p6 <- ggplot(FirstWinterMaster, aes(x = Location)) +
-  geom_histogram(binwidth = 1, fill="grey", color="black", alpha=0.5, position="identity") +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
-  labs(x = "x", y = "y") +
-  aes(y = stat(count)/sum(stat(count)))# +
-#facet_grid(Year ~ .)
+##survey effort plot
+
+###1st winter
+TDP <- subset(FirstWinterMasterOriginal, Date >= as.Date("01/09/2017",format="%d/%m/%Y") & Date <= as.Date("18/02/2018",format="%d/%m/%Y"))
+SurveyDataP6 <- aggregate(TDP$Date ~ TDP$Location, TDP, function(x) length(unique(x)))
+names(SurveyDataP6) <- c("Location", "Number.of.survey.days")
+SurveyDataP6$Location[SurveyDataP6$Location == "Boddam"] <- "* Boddam"
+SurveyDataP6$Location[SurveyDataP6$Location == "Buchanhaven"] <- "* Buchanhaven"
+SurveyDataP6$Location[SurveyDataP6$Location == "Peterhead"] <- "* Peterhead"
+SurveyDataP6$Location[SurveyDataP6$Location == "Scotstown"] <- "* Scotstown"
+SurveyDataP6$Location <- as.factor(SurveyDataP6$Location)
+SurveyDataP6 <- subset(SurveyDataP6, SurveyDataP6$Number.of.survey.days > 1)
+SurveyDataP6 <- SurveyDataP6[order(-SurveyDataP6$Number.of.survey.days),]
+
+p6.1 <- ggplot(SurveyDataP6, aes(x = Location, y = Number.of.survey.days)) +
+  theme(axis.title.x=element_blank(), axis.title.y=element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
+  geom_col(stat="identity") +
+  coord_flip() +
+  scale_x_discrete(name ="Sighting locations", limits = SurveyDataP6$Location) +
+  ylim(c(0, 50)) +
+  labs(x = "Sighting locations", y = "Sighting days in winter period") 
+
+p6.1
+
+###2nd winter
+TDP <- subset(SecondWinterMasterOriginal, Date >= as.Date("01/09/2018",format="%d/%m/%Y") & Date <= as.Date("18/02/2019",format="%d/%m/%Y"))
+TDP$Location[TDP$Location == "PITTENWEEM"] <- "Pittenweem"
+SurveyDataP6 <- aggregate(TDP$Date ~ TDP$Location, TDP, function(x) length(unique(x)))
+names(SurveyDataP6) <- c("Location", "Number.of.survey.days")
+SurveyDataP6$Location[SurveyDataP6$Location == "Boddam"] <- "* Boddam"
+SurveyDataP6$Location[SurveyDataP6$Location == "Buchanhaven"] <- "* Buchanhaven"
+SurveyDataP6$Location[SurveyDataP6$Location == "Peterhead"] <- "* Peterhead"
+SurveyDataP6$Location[SurveyDataP6$Location == "Scotstown"] <- "* Scotstown"
+SurveyDataP6$Location <- as.factor(SurveyDataP6$Location)
+SurveyDataP6 <- subset(SurveyDataP6, SurveyDataP6$Number.of.survey.days > 1)
+SurveyDataP6 <- SurveyDataP6[order(-SurveyDataP6$Number.of.survey.days),]
+
+p6.2 <- ggplot(SurveyDataP6, aes(x = Location, y = Number.of.survey.days)) +
+  theme(axis.title.x=element_blank(), axis.title.y=element_blank(), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
+  geom_col(stat="identity") +
+  coord_flip() +
+  scale_x_discrete(name ="Sighting locations", limits = SurveyDataP6$Location) +
+  ylim(c(0, 50)) +
+  labs(x = "Sighting locations", y = "Sighting days in winter period") 
+
+p6.2
+
+###putting it together
+
+p6 <- NULL
+
+p6 <- ggarrange(p6.1, p6.2, labels = c("2017-18", "2018-19"), font.label = list(size = 10), hjust = -4.5, vjust = 4.4, ncol = 2, nrow = 1)
+p6 <- annotate_figure(p6, left = text_grob("Sighting locations", color="black", rot=90), bottom = text_grob("Sighting days in winter period"))
 
 p6
+
+
+
+
+
+
 
 #-#-#-#
 
@@ -1073,6 +1195,96 @@ ShagsFemaleIoM2019/ShagsMaleIoM2019 # female to male ratio in 2019
 
 chisq.test(x=c(ShagsFemaleIoM2018, ShagsMaleIoM2018), p=c(0.5, 0.5)) # IoM 2018
 chisq.test(x=c(ShagsFemaleIoM2019, ShagsMaleIoM2019), p=c(0.5, 0.5)) # IoM 2019
+
+##breeding success ratios
+### n = number of individuals
+### r = number of positive individuals
+### pass  r 1st and  n second
+
+###ratioIoM18
+r <- length(which(RSData$Success == "success" & RSData$Year == "2018" & RSData$colony == "Isle of May"))
+n <- length(which(RSData$Year == "2018" & RSData$colony == "Isle of May"))
+
+RIoM18 <- r/n # ratio
+RIoM18l95 <- pl95ci(r, n) # ratio lower 95 conf interval
+RIoM18h95 <- ph95ci(r, n) # ratio higher 95 conf interval
+print(RIoM18)
+print(RIoM18l95)
+print(RIoM18h95)
+
+###ratioIoM19
+r <- length(which(RSData$Success == "success" & RSData$Year == "2019" & RSData$colony == "Isle of May"))
+n <- length(which(RSData$Year == "2019" & RSData$colony == "Isle of May"))
+
+RIoM19 <- r/n # ratio
+RIoM19l95 <- pl95ci(r, n) # ratio lower 95 conf interval
+RIoM19h95 <- ph95ci(r, n) # ratio higher 95 conf interval
+print(RIoM19)
+print(RIoM19l95)
+print(RIoM19h95)
+
+###ratioBoB18
+r <- length(which(RSData$Success == "success" & RSData$Year == "2018" & RSData$colony == "Bullers of Buchan"))
+n <- length(which(RSData$Year == "2018" & RSData$colony == "Bullers of Buchan"))
+
+RBoB18 <- r/n # ratio
+RBoB18l95 <- pl95ci(r, n) # ratio lower 95 conf interval
+RBoB18h95 <- ph95ci(r, n) # ratio higher 95 conf interval
+print(RBoB18)
+print(RBoB18l95)
+print(RBoB18h95)
+
+###ratioBoB19
+r <- length(which(RSData$Success == "success" & RSData$Year == "2019" & RSData$colony == "Bullers of Buchan"))
+n <- length(which(RSData$Year == "2019" & RSData$colony == "Bullers of Buchan"))
+
+RBoB19 <- r/n # ratio
+RBoB19l95 <- pl95ci(r, n) # ratio lower 95 conf interval
+RBoB19h95 <- ph95ci(r, n) # ratio higher 95 conf interval
+print(RBoB19)
+print(RBoB19l95)
+print(RBoB19h95)
+
+###plot prep
+
+SuccessRatioDF <- data.frame(groups = c("Isle\nof\nMay\n2018", "Isle\nof\nMay\n2019", "Bullers\nof\nBuchan\n2018", "Bullers\nof\nBuchan\n2019"), 
+                             ratios = c(RIoM18, RIoM19, RBoB18, RBoB19), 
+                             lower95ci = c(RIoM18l95, RIoM19l95, RBoB18l95, RBoB19l95), 
+                             upper95ci = c(RIoM18h95, RIoM19h95, RBoB18h95, RBoB19h95))
+
+###difference between ratios
+### D - sqrt((p1-l1)^2 + (u2-p2)^2) to D + sqrt((p2-l2)^2 + (u1 - p1)^2)
+####IoM between years
+D <- abs(RIoM18 - RIoM19)
+Dl <- D - sqrt((RIoM18-RIoM18l95)^2 + (RIoM19h95-RIoM19)^2) 
+Du <- D + sqrt((RIoM19-RIoM19l95)^2 + (RIoM18h95-RIoM18)^2)
+D
+Dl
+Du
+
+####BoB between years
+D <- abs(RBoB18 - RBoB19)
+Dl <- D - sqrt((RBoB18-RBoB18l95)^2 + (RBoB19h95-RBoB19)^2) 
+Du <- D + sqrt((RBoB19-RBoB19l95)^2 + (RBoB18h95-RBoB18)^2)
+D
+Dl
+Du
+
+####2018 between colonies
+D <- abs(RIoM18 - RBoB18)
+Dl <- D - sqrt((RIoM18-RIoM18l95)^2 + (RBoB18h95-RBoB18)^2) 
+Du <- D + sqrt((RBoB18-RBoB18l95)^2 + (RIoM18h95-RIoM18)^2)
+D
+Dl
+Du
+
+####2019 between colonies
+D <- abs(RIoM19 - RBoB19)
+Dl <- D - sqrt((RIoM19-RIoM19l95)^2 + (RBoB19h95-RBoB19)^2) 
+Du <- D + sqrt((RBoB19-RBoB19l95)^2 + (RIoM19h95-RIoM19)^2)
+D
+Dl
+Du
 
 #-#-#-#
 
@@ -1122,9 +1334,9 @@ p3.2
 
 ### years and colonies combined
 p3 <- NULL
-p3 <- ggarrange(p3.1, p3.2, labels = c("Bullers of Buchan", "Isle of May"), hjust = -0.5, vjust = 4, ncol = 1, nrow = 2)
+p3 <- ggarrange(p3.1, p3.2, labels = c("Bullers of Buchan", "    Isle of May"), font.label = list(size = 10), hjust = -0.5, vjust = 4.4, ncol = 1, nrow = 2)
 #p3 <- ggarrange(p3.1, p3.2, labels = c("Bullers of Buchan", "Isle of May"), label.x = 0.04, label.y = 0.87, ncol = 1, nrow = 2)
-p3 <- annotate_figure(p3, left = text_grob("Frequency", color="black", rot=90, face="bold"), bottom = text_grob("Age", face="bold"))
+p3 <- annotate_figure(p3, left = text_grob("Frequency", color="black", rot=90), bottom = text_grob("Age"))
 
 p3
 
@@ -1175,13 +1387,13 @@ p4.4
 ### years and colonies combined
 
 p4 <- ggarrange(p4.1, p4.2, p4.3, p4.4, labels = c("A", "B", "C","D"), label.x = 0.85, label.y = 0.95, ncol = 2, nrow = 2)
-p4 <-annotate_figure(p4, left = text_grob("Proportion", color="black", rot=90, face="bold"), bottom = text_grob("Chicks fledged", face="bold"))
+p4 <-annotate_figure(p4, left = text_grob("Proportion", color="black", rot=90, face="plain"), bottom = text_grob("Chicks fledged", face="plain"))
 
 p4
 
 #-#-#-#
 
-##boxplot for reproductive success
+##boxplot for reproductive output
 
 RSDataP <- RSData
 RSDataP$Cohort <- "both years"
@@ -1202,11 +1414,30 @@ min.mean.sd.max <- function(x) {
 p5 <- p5 + stat_summary(fun.data = min.mean.sd.max, geom = "boxplot") +
   ylim(c(-0.5, 4)) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
-  labs(x = "Breeding colony", y = "Chicks fledged") +
+  labs(x = "Breeding colony", y = "Mean number of chicks fledged") +
   #coord_flip() +
   facet_wrap(. ~ Cohort)
 
 p5
+
+#-#-#-#
+
+##dotplot for reproductive success
+
+SuccessRatioDF$groups <- as.factor(SuccessRatioDF$groups)
+
+p10 <- ggplot(SuccessRatioDF, aes(x = groups, y = ratios, group = 1:length(groups), label = round(ratios, digits = 2))) +
+  geom_point(size = 3) +
+  ylim(c(0,1)) +
+  geom_text(nudge_x = 0.33, size = 3) +
+  geom_errorbar(aes(ymin = lower95ci, ymax = upper95ci), width = 0.2) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
+  labs(x = "Cohort", y = "Success ratio") 
+p10 #export as 400x300
+
+
+
+
 
 #-#-#-#
 
@@ -1218,11 +1449,14 @@ RSDataP7 <- merge(RSDataP7, aggregate(RSData.with.age[, 'RS'], list(RSData.with.
 names(RSDataP7) <- c("Year.RS", "Mean.RS", "SD.RS", "N.RS")
 RSDataP7$SE.RS <- RSDataP7$SD.RS / sqrt(RSDataP7$N.RS - 1)
 RSDataP7$CI95 <- RSDataP7$SE.RS * 1.96
+RSDataP7$CI95low <- RSDataP7$Mean.RS - RSDataP7$CI95
+RSDataP7$CI95up <- RSDataP7$Mean.RS + RSDataP7$CI95
+RSDataP7$CI95low[which(RSDataP7$CI95low < 0)] <- 0
 
 p7 <- ggplot(RSDataP7, aes(x = Year.RS, y = Mean.RS)) +
   geom_bar(stat="identity") +
-  ylim(c(0, 3)) +
-  geom_errorbar(aes(ymin = Mean.RS - CI95, ymax = Mean.RS + CI95), width = 0.2, position=position_dodge(0.9)) +
+  ylim(c(0, 3.2)) +
+  geom_errorbar(aes(ymin = CI95low, ymax = CI95up), width = 0.2, position=position_dodge(0.9)) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(color="black", size = 0.5)) +
   labs(x = "Age group", y = "Mean reproductive output") 
 
@@ -1277,9 +1511,7 @@ p9
 #-#-#-#
 
 
-
-
-
+#-#-#-#
 
 
 
