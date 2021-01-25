@@ -645,8 +645,8 @@ summary(model2b)
 summ(model2a, confint=TRUE, digits=3)
 
 effect_plot(model2a, pred = colony, interval=TRUE, plot.points=TRUE)
-plot_summs(model2a, scale=TRUE, inner_ci_level = 0.95)
-plot_summs(model2a, model2b, model2e, scale=TRUE)
+plot_summs(model2b, model2e, scale=TRUE, ci_level = 0.95, colors = c("black","bisque4"), legend.title = c("model2b","model2e"))
+
 
 #model.sel(model2a, model2b, model2c, model2d, model2e, model2f, model2g, model2h, model2i, model2j, model2k)
 
